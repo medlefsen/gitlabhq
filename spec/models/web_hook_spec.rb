@@ -12,6 +12,7 @@
 #
 
 require 'spec_helper'
+require 'open-uri'
 
 describe ProjectHook do
   describe "Associations" do
@@ -31,6 +32,7 @@ describe ProjectHook do
       it { should allow_value("http://test.com/api").for(:url) }
       it { should allow_value("http://test.com/api?key=abc").for(:url) }
       it { should allow_value("http://test.com/api?key=abc&type=def").for(:url) }
+      it { should allow_value("http://user:password@test.com/api?key=abc&type=def").for(:url) }
 
       it { should_not allow_value("example.com").for(:url) }
       it { should_not allow_value("ftp://example.com").for(:url) }
@@ -53,19 +55,44 @@ describe ProjectHook do
       WebMock.should have_requested(:post, @project_hook.url).once
     end
 
-    it "POSTs the data as JSON" do
-      json = @data.to_json
-
-      @project_hook.execute(@data)
-      WebMock.should have_requested(:post, @project_hook.url).with(body: json).once
-    end
-
     it "catches exceptions" do
       WebHook.should_receive(:post).and_raise("Some HTTP Post error")
 
       lambda {
         @project_hook.execute(@data)
       }.should raise_error
+    end
+
+    context "github webhook format" do
+      before do
+        Gitlab.config.gitlab.stub(:github_compatible_hooks).and_return(true)
+      end
+
+      it "POSTs the data in github compatible format" do
+        content = "payload=" + URI.escape(@data.to_json)
+
+        @project_hook.execute(@data)
+        WebMock.should have_requested(:post, @project_hook.url).
+                           with(:body => content,
+                                :headers => {'Content-Type' => 'application/x-www-form-urlencoded'}).
+                           once
+      end
+    end
+
+    context "gitlab webhook format" do
+      before do
+        Gitlab.config.gitlab.stub(:github_compatible_hooks).and_return(false)
+      end
+
+      it "POSTs the data as JSON" do
+        json = @data.to_json
+
+        @project_hook.execute(@data)
+        WebMock.should have_requested(:post, @project_hook.url).
+                           with(:body => json,
+                                :headers => {'Content-Type' => 'application/json'}).
+                           once
+      end
     end
   end
 end
