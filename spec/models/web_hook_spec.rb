@@ -12,7 +12,6 @@
 #
 
 require 'spec_helper'
-require 'open-uri'
 
 describe ProjectHook do
   describe "Associations" do
@@ -69,11 +68,9 @@ describe ProjectHook do
       end
 
       it "POSTs the data in github compatible format" do
-        content = "payload=" + URI.escape(@data.to_json)
-
         @project_hook.execute(@data)
         WebMock.should have_requested(:post, @project_hook.url).
-                           with(:body => content,
+                           with(:body => {:payload => @data.to_json},
                                 :headers => {'Content-Type' => 'application/x-www-form-urlencoded'}).
                            once
       end
@@ -85,11 +82,9 @@ describe ProjectHook do
       end
 
       it "POSTs the data as JSON" do
-        json = @data.to_json
-
         @project_hook.execute(@data)
         WebMock.should have_requested(:post, @project_hook.url).
-                           with(:body => json,
+                           with(:body => @data.to_json,
                                 :headers => {'Content-Type' => 'application/json'}).
                            once
       end
