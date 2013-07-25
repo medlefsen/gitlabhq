@@ -12,6 +12,7 @@
 #
 
 require 'spec_helper'
+require 'cgi'
 
 describe ProjectHook do
   describe "Associations" do
@@ -70,7 +71,7 @@ describe ProjectHook do
       it "POSTs the data in github compatible format" do
         @project_hook.execute(@data)
         WebMock.should have_requested(:post, @project_hook.url).
-                           with(:body => {:payload => @data.to_json},
+                           with(:body => "payload=" + CGI.escape(@data.to_json),
                                 :headers => {'Content-Type' => 'application/x-www-form-urlencoded'}).
                            once
       end
