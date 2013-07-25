@@ -63,7 +63,7 @@ describe ProjectHook do
       }.should raise_error
     end
 
-    context "github webhook format" do
+    context "with github webhook format" do
       before do
         Gitlab.config.gitlab.stub(:github_compatible_hooks).and_return(true)
       end
@@ -71,13 +71,12 @@ describe ProjectHook do
       it "POSTs the data in github compatible format" do
         @project_hook.execute(@data)
         WebMock.should have_requested(:post, @project_hook.url).
-                           with(:body => "payload=" + CGI.escape(@data.to_json),
-                                :headers => {'Content-Type' => 'application/x-www-form-urlencoded'}).
+                           with(:body => "payload=" + CGI.escape(@data.to_json)).
                            once
       end
     end
 
-    context "gitlab webhook format" do
+    context "with gitlab webhook format" do
       before do
         Gitlab.config.gitlab.stub(:github_compatible_hooks).and_return(false)
       end
