@@ -2,13 +2,14 @@
 #
 # Table name: web_hooks
 #
-#  id         :integer          not null, primary key
-#  url        :string(255)
-#  project_id :integer
-#  created_at :datetime         not null
-#  updated_at :datetime         not null
-#  type       :string(255)      default("ProjectHook")
-#  service_id :integer
+#  id                :integer          not null, primary key
+#  url               :string(255)
+#  project_id        :integer
+#  created_at        :datetime         not null
+#  updated_at        :datetime         not null
+#  type              :string(255)      default("ProjectHook")
+#  service_id        :integer
+#  github_compatible :boolean          default(FALSE), not null
 #
 
 require 'spec_helper'
@@ -40,12 +41,42 @@ describe ProjectHook do
     end
   end
 
+  describe "github_compatible_data" do
+    it "copies project.web_url to data.repository.url" do
+      project_hook = create(:project_hook)
+      project = create(:project)
+      project.hooks << [project_hook]
+      project.web_url = "http://example.com/repository"
+
+      data = {
+        before: 'oldrev',
+        after: 'newrev',
+        ref: 'ref',
+        repository: {
+          url: "git@example.com:repository.git"
+        }
+      }
+
+      result = project_hook.github_compatible_data(data)
+      result[:repository].should include(:url => project.web_url)
+    end
+  end
+
   describe "execute" do
     before(:each) do
       @project_hook = create(:project_hook)
       @project = create(:project)
       @project.hooks << [@project_hook]
-      @data = { before: 'oldrev', after: 'newrev', ref: 'ref'}
+      @project.web_url = "http://example.com/repository"
+
+      @data = {
+        before: 'oldrev',
+        after: 'newrev',
+        ref: 'ref',
+        repository: {
+          url: "git@example.com:repository.git"
+        }
+      }
 
       WebMock.stub_request(:post, @project_hook.url)
     end
@@ -63,22 +94,23 @@ describe ProjectHook do
       }.should raise_error
     end
 
-    context "with github webhook format" do
+    context "with GitHub webhook format" do
       before do
-        Gitlab.config.gitlab.stub(:github_compatible_hooks).and_return(true)
+        @project_hook.github_compatible = true
       end
 
-      it "POSTs the data in github compatible format" do
+      it "POSTs the data in GitHub compatible format" do
         @project_hook.execute(@data)
+        transformed_data = @project_hook.github_compatible_data(@data)
         WebMock.should have_requested(:post, @project_hook.url).
-                           with(:body => "payload=" + CGI.escape(@data.to_json)).
+                           with(:body => "payload=" + CGI.escape(transformed_data.to_json)).
                            once
       end
     end
 
-    context "with gitlab webhook format" do
+    context "with GitLab webhook format" do
       before do
-        Gitlab.config.gitlab.stub(:github_compatible_hooks).and_return(false)
+        @project_hook.github_compatible = false
       end
 
       it "POSTs the data as JSON" do
@@ -86,6 +118,19 @@ describe ProjectHook do
         WebMock.should have_requested(:post, @project_hook.url).
                            with(:body => @data.to_json,
                                 :headers => {'Content-Type' => 'application/json'}).
+                           once
+      end
+    end
+
+    context "with username and password in the URL" do
+      before do
+        @project_hook.url = "http://user:password@example.com/repo"
+      end
+
+      it "adds the authorization header" do
+        @project_hook.execute(@data)
+        WebMock.should have_requested(:post, @project_hook.url).
+                           with(:headers => {'Authorization' => 'Basic dXNlcjpwYXNzd29yZA=='}).
                            once
       end
     end
