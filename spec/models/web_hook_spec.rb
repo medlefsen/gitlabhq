@@ -41,12 +41,42 @@ describe ProjectHook do
     end
   end
 
+  describe "github_compatible_data" do
+    it "copies project.web_url to data.repository.url" do
+      project_hook = create(:project_hook)
+      project = create(:project)
+      project.hooks << [project_hook]
+      project.web_url = "http://example.com/repository"
+
+      data = {
+        before: 'oldrev',
+        after: 'newrev',
+        ref: 'ref',
+        repository: {
+          url: "git@example.com:repository.git"
+        }
+      }
+
+      result = project_hook.github_compatible_data(data)
+      result[:repository].should include(:url => project.web_url)
+    end
+  end
+
   describe "execute" do
     before(:each) do
       @project_hook = create(:project_hook)
       @project = create(:project)
       @project.hooks << [@project_hook]
-      @data = { before: 'oldrev', after: 'newrev', ref: 'ref'}
+      @project.web_url = "http://example.com/repository"
+
+      @data = {
+        before: 'oldrev',
+        after: 'newrev',
+        ref: 'ref',
+        repository: {
+          url: "git@example.com:repository.git"
+        }
+      }
 
       WebMock.stub_request(:post, @project_hook.url)
     end
@@ -69,10 +99,11 @@ describe ProjectHook do
         @project_hook.github_compatible = true
       end
 
-      it "POSTs the data in github compatible format" do
+      it "POSTs the data in GitHub compatible format" do
         @project_hook.execute(@data)
+        transformed_data = @project_hook.github_compatible_data(@data)
         WebMock.should have_requested(:post, @project_hook.url).
-                           with(:body => "payload=" + CGI.escape(@data.to_json)).
+                           with(:body => "payload=" + CGI.escape(transformed_data.to_json)).
                            once
       end
     end
