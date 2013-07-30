@@ -126,7 +126,6 @@ describe ProjectHook do
     context "with username and password in the URL" do
       it "adds the authorization header" do
         url_with_auth = "http://user:password@example.com/"
-        url_without_auth = "http://example.com/"
 
         auth_project_hook = create(:project_hook)
         auth_project_hook.url = url_with_auth
@@ -135,9 +134,7 @@ describe ProjectHook do
 
         auth_project_hook.execute("test")
 
-        WebMock.should have_requested(:post, url_with_auth).
-                           with(:headers => {'Authorization' => 'Basic dXNlcjpwYXNzd29yZA=='}).
-                           once
+        WebMock.should have_requested(:post, url_with_auth).once
       end
     end
   end
