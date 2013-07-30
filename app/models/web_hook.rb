@@ -26,7 +26,7 @@ class WebHook < ActiveRecord::Base
   def execute(data)
     options = {}
     if github_compatible
-      payload = github_compatible_data(data)
+      payload = WebHook.github_compatible_data(data)
       options = {
         :body => {"payload" => payload.to_json}
       }
