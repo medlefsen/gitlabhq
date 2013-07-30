@@ -43,22 +43,23 @@ describe ProjectHook do
 
   describe "github_compatible_data" do
     it "copies project.web_url to data.repository.url" do
-      project_hook = create(:project_hook)
-      project = create(:project)
-      project.hooks << [project_hook]
-      project.path = "repository"
+
+      repo_url = "git@example.com:repository.git"
+      repo_homepage = "http://example.com/repository"
 
       data = {
         before: 'oldrev',
         after: 'newrev',
         ref: 'ref',
         repository: {
-          url: "git@example.com:repository.git"
+          url: repo_url,
+          homepage: repo_homepage
         }
       }
 
-      result = project_hook.github_compatible_data(data)
-      result[:repository].should include(:url => project.web_url)
+      result = WebHook.github_compatible_data(data)
+      result[:repository].should include(:url => repo_homepage)
+      result[:repository].should_not include(:homepage)
     end
   end
 
