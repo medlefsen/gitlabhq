@@ -126,6 +126,7 @@ describe ProjectHook do
     context "with username and password in the URL" do
       before do
         @project_hook.url = "http://user:password@example.com/repo"
+        WebMock.stub_request(:post, @project_hook.url)
       end
 
       it "adds the authorization header" do
