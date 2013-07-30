@@ -46,7 +46,7 @@ describe ProjectHook do
       project_hook = create(:project_hook)
       project = create(:project)
       project.hooks << [project_hook]
-      project.web_url = "http://example.com/repository"
+      project.path = "repository"
 
       data = {
         before: 'oldrev',
@@ -67,7 +67,7 @@ describe ProjectHook do
       @project_hook = create(:project_hook)
       @project = create(:project)
       @project.hooks << [@project_hook]
-      @project.web_url = "http://example.com/repository"
+      @project.path = "repository"
 
       @data = {
         before: 'oldrev',
