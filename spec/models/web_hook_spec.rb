@@ -133,7 +133,7 @@ describe ProjectHook do
 
         WebMock.stub_request(:post, url_without_auth)
 
-        auth_project_hook.execute()
+        auth_project_hook.execute("test")
         WebMock.should have_requested(:post, url_without_auth).
                            with(:headers => {'Authorization' => 'Basic dXNlcjpwYXNzd29yZA=='}).
                            once
