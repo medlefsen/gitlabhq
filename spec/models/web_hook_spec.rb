@@ -102,7 +102,7 @@ describe ProjectHook do
 
       it "POSTs the data in GitHub compatible format" do
         @project_hook.execute(@data)
-        transformed_data = @project_hook.github_compatible_data(@data)
+        transformed_data = WebHook.github_compatible_data(@data)
         WebMock.should have_requested(:post, @project_hook.url).
                            with(:body => "payload=" + CGI.escape(transformed_data.to_json)).
                            once
