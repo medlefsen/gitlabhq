@@ -124,14 +124,17 @@ describe ProjectHook do
     end
 
     context "with username and password in the URL" do
-      before do
-        @project_hook.url = "http://user:password@example.com/repo"
-        WebMock.stub_request(:post, "http://example.com/repo")
-      end
-
       it "adds the authorization header" do
-        @project_hook.execute(@data)
-        WebMock.should have_requested(:post, "http://example.com/repo").
+        url_with_auth = "http://user:password@example.com/"
+        url_without_auth = "http://example.com/"
+
+        auth_project_hook = create(:project_hook)
+        auth_project_hook.url = url_with_auth
+
+        WebMock.stub_request(:post, url_without_auth)
+
+        auth_project_hook.execute()
+        WebMock.should have_requested(:post, url_without_auth).
                            with(:headers => {'Authorization' => 'Basic dXNlcjpwYXNzd29yZA=='}).
                            once
       end
